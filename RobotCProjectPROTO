@@ -1,0 +1,320 @@
+#pragma config(Sensor, S4,     sonarSensor,    sensorSONAR)
+#pragma config(Sensor, S1,    lightSensor,    sensorLightActive)
+
+void reverseToCentre();
+void moveToCentre();
+void changeDirection();
+void updateObstacleMap(int currentColumn, int currentRow, int direction);
+int checkCellColour(int threshold);
+void navigateGrid();// declare our grid
+void beepbeep();
+void beepbeep2();
+void starwars();
+
+
+int grid[9][7];
+int currentColumn = 0;
+int currentRow = 0;
+int direction = 3;
+	// 1 is north
+	// 2 is south
+	// 3 is east
+	// 4 is west
+int thresholdValue;
+//to help with our random turns, left = 4, right = 6;
+int lastTurn = 4;
+
+task main()
+{
+	starwars();
+
+ 	int lightValue;
+	int darkValue;
+	int sumValue;
+
+	nMotorPIDSpeedCtrl[motorC] = mtrSpeedReg;
+	nMotorPIDSpeedCtrl[motorB] = mtrSpeedReg;
+
+	darkValue=42;
+	lightValue=71;
+	sumValue = lightValue + darkValue;
+	thresholdValue = sumValue/2;
+
+
+	// 0 is white cell, 1 is black cell, 99 is start
+
+	// initialise our grid
+	for (int i = 0; i < 9; i++)
+	{
+		for (int j = 0; i < 7; i ++)
+		{
+			grid[i][j] = 0;
+		}
+	}
+	grid[0][3] = 99;
+
+	while(1==1)
+	{
+		navigateGrid();
+	}
+}
+
+int checkCellColour(int threshold)
+{
+	if (SensorValue(lightSensor) < threshold)
+	{
+		// We are in a black Cell
+		nxtDisplayCenteredTextLine(4, "We are in a black Cell");
+		wait1Msec(400);
+		return 1;
+	}
+	else
+	{
+		// We are in a white Cell
+		nxtDisplayCenteredTextLine(4, "We are in a white Cell");
+		wait1Msec(400);
+		return 0;
+	}
+}
+
+
+void moveToCentre()
+{
+	nMotorEncoder[motorB] = 0;
+  nMotorEncoder[motorC] = 0;
+  nMotorEncoderTarget[motorB] = 285;
+  nMotorEncoderTarget[motorC] = 285;
+  motor[motorB] = 50;
+  motor[motorC] = 50;
+  while(nMotorRunState[motorB] != runStateIdle && nMotorRunState[motorC] != runStateIdle) {}
+
+	if (direction == 1)
+	{
+		currentColumn = currentColumn-1;
+	}
+	else if (direction == 2)
+	{
+		currentColumn = currentColumn+1;
+	}
+	else if (direction == 3)
+	{
+		currentRow = currentRow + 1;
+	}
+	else
+	{
+		currentRow = currentRow - 1;
+	}
+	nxtDisplayClearTextLine(4);
+	nxtDisplayCenteredTextLine(4, "C: %d, R: %d, D: %d",currentColumn, currentRow, direction);
+	wait1Msec(650);
+}
+
+void reverseToCentre()
+{
+	nMotorEncoder[motorB] = 0;
+  nMotorEncoder[motorC] = 0;
+  nMotorEncoderTarget[motorB] = 21;
+  nMotorEncoderTarget[motorC] = 21;
+  motor[motorB] = -30;
+  motor[motorC] = -30;
+  while(nMotorRunState[motorB] != runStateIdle && nMotorRunState[motorC] != runStateIdle) {}
+}
+void changeDirection()
+{
+	//Need to reverse back to centre of the cell and change direction
+	reverseToCentre();
+	// One approach is to always try and turn left. Will this cause any problems?
+	// What about random left/right changes of direction, how will you do this?
+	if (lastTurn == 4)
+	{
+		int countsToTravel = 0;
+  //distance one wheel must travel for 90 degree point turn = 9.6 cm
+  //wheel circumference = 17.6 cm
+  countsToTravel = (8.6/17.6)*(360);
+
+  //encoder target for countsToTravel
+  nMotorEncoder[motorB] = 0;
+  nMotorEncoder[motorC] = 0;
+  nMotorEncoderTarget[motorB] = countsToTravel;
+  nMotorEncoderTarget[motorC] = countsToTravel;
+  motor[motorB] = -30;
+  motor[motorC] = 30;
+  while(nMotorRunState[motorB] != runStateIdle && nMotorRunState[motorC] != runStateIdle) {}
+
+  //stop for half second at end of movement
+  motor[motorB] = 0;
+  motor[motorC] = 0;
+  wait1Msec(400); //turn right
+									// Change facing direction
+	lastTurn = 6;// change lastTurn to be right
+
+	if ( direction == 3)
+	{
+		direction = 2;
+	}
+	else if ( direction == 2 )
+	{
+		direction = 4;
+	}
+	else if ( direction == 4 )
+	{
+		direction = 1;
+	}
+	else if ( direction == 1 )
+	{
+		direction = 3;
+	}
+
+	navigateGrid();
+
+	}
+	else
+	{
+		int countsToTravel = 0;
+  //distance one wheel must travel for 90 degree point turn = 9.6 cm
+  //wheel circumference = 17.6 cm
+  countsToTravel = (8.6/17.6)*(360);
+
+  //encoder target for countsToTravel
+  nMotorEncoder[motorB] = 0;
+  nMotorEncoder[motorC] = 0;
+  nMotorEncoderTarget[motorB] = countsToTravel;
+  nMotorEncoderTarget[motorC] = countsToTravel;
+  motor[motorB] = 30;
+  motor[motorC] = -30;
+  while(nMotorRunState[motorB] != runStateIdle && nMotorRunState[motorC] != runStateIdle) {}
+
+  //stop for half second at end of movement
+  motor[motorB] = 0;
+  motor[motorC] = 0;
+  wait1Msec(400); //turn left
+	// Change facing direction
+	lastTurn = 4;// change lastTurn to be left
+
+	if ( direction == 3)
+	{
+		direction = 1;
+	}
+	else if ( direction == 2 )
+	{
+		direction = 3;
+	}
+	else if ( direction == 4 )
+	{
+		direction = 2;
+	}
+	else if ( direction == 1 )
+	{
+		direction = 4;
+	}
+
+	navigateGrid();
+
+	}
+}
+
+void updateObstacleMap(int currentColumn, int currentRow, int direction)
+{
+	if (direction == 1)
+		{
+			//Facing north, so row above, same column is black
+			grid[currentColumn][currentRow+1] = 1;
+
+		}
+	else if (direction == 2)
+		{
+			//Facing south, so row below, same column is black
+			grid[currentColumn][currentRow-1] = 1;
+		}
+	else if (direction == 3)
+		{
+			//Facing east, so same row, next column is black
+			grid[currentColumn+1][currentRow] = 1;
+		}
+	else
+		{
+			//Facing west, so same row, previous column is black
+			grid[currentColumn-1][currentRow] = 1;
+		}
+}
+
+void navigateGrid()
+{
+		int cellColour; //1 for black, 0 for white
+		cellColour = checkCellColour(thresholdValue);
+
+		if (cellColour == 1)
+		{
+			// We are in a black Cell
+			updateObstacleMap(currentColumn, currentRow, direction);
+			// Need to avoid obstacle
+			//reverseToCentre();
+			changeDirection();
+			beepbeep2()
+		}
+		else
+		{
+			// We are in a white Cell
+			updateObstacleMap(currentColumn, currentRow, direction);
+			moveToCentre();
+			beepbeep();
+
+		}
+}
+//black beep
+void beepbeep2() {
+  PlayTone(800, 20);
+  PlayTone(800, 10);
+  PlayTone(800, 10);
+}
+//White beep
+void beepbeep() {
+  PlayTone(800, 10);
+  wait10Msec(20);
+  PlayTone(800, 10);
+  wait10Msec(20);
+}
+
+void starwars()
+{
+	nxtDisplayCenteredTextLine(0, "Star Wars");
+ PlayTone(695, 14); while(bSoundActive);
+ PlayTone(695, 14); while(bSoundActive);
+ PlayTone(695, 14); while(bSoundActive);
+ PlayTone(929, 83); while(bSoundActive);
+ PlayTone(1401, 83); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1188, 14); while(bSoundActive);
+ PlayTone(1054, 14); while(bSoundActive);
+ PlayTone(1841, 83); while(bSoundActive);
+ PlayTone(1401, 41); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1188, 14); while(bSoundActive);
+ PlayTone(1054, 14); while(bSoundActive);
+ PlayTone(1841, 83); while(bSoundActive);
+ PlayTone(1401, 41); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1188, 14); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1054, 55); while(bSoundActive);
+ wait1Msec(280);
+ PlayTone(695, 14); while(bSoundActive);
+ PlayTone(695, 14); while(bSoundActive);
+ PlayTone(695, 14); while(bSoundActive);
+ PlayTone(929, 83); while(bSoundActive);
+ PlayTone(1401, 83); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1188, 14); while(bSoundActive);
+ PlayTone(1054, 14); while(bSoundActive);
+ PlayTone(1841, 83); while(bSoundActive);
+ PlayTone(1401, 41); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1188, 14); while(bSoundActive);
+ PlayTone(1054, 14); while(bSoundActive);
+ PlayTone(1841, 83); while(bSoundActive);
+ PlayTone(1401, 41); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1188, 14); while(bSoundActive);
+ PlayTone(1251, 14); while(bSoundActive);
+ PlayTone(1054, 55); while(bSoundActive);
+}
